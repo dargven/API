@@ -1,7 +1,7 @@
 package sqlite
 
 import (
-	storage "GoStudy/internal/Storage"
+	storage "API/internal/Storage"
 	"database/sql"
 	"errors"
 	"fmt"

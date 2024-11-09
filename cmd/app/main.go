@@ -1,9 +1,9 @@
 package main
 
 import (
-	"GoStudy/internal/Storage/sqlite"
-	"GoStudy/internal/config"
-	"GoStudy/internal/lib/logger/sl"
+	"API/internal/Storage/sqlite"
+	"API/internal/config"
+	"API/internal/lib/logger/sl"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"log/slog"

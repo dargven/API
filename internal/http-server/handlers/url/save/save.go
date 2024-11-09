@@ -2,7 +2,7 @@ package save
 
 import (
 	// для краткости даем короткий алиас пакету
-	resp "GoStudy/internal/lib/api/response"
+	resp "API/internal/lib/api/response"
 	"golang.org/x/exp/slog"
 	"net/http"
 )
