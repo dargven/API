@@ -3,11 +3,14 @@ package main
 import (
 	"API/internal/Storage/sqlite"
 	"API/internal/config"
+	"API/internal/http-server/handlers/url/save"
 	"API/internal/lib/logger/sl"
+	"os"
+
+	"golang.org/x/exp/slog"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"log/slog"
-	"os"
 )
 
 const (
@@ -33,6 +36,7 @@ func main() {
 	//Разобраться как подключить свой logger
 	router.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
 	router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
+	router.Post("/", save.New(log, storage))
 }
 
 func setupLogger(env string) *slog.Logger {
