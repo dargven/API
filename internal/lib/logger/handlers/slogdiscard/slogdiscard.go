@@ -3,6 +3,7 @@ package slogdiscard
 // Нужен Logger Для корректной работы тестов.
 import (
 	"context"
+
 	"golang.org/x/exp/slog"
 )
 

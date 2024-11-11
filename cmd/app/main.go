@@ -1,16 +1,21 @@
 package main
 
 import (
+	storage "API/internal/Storage"
 	"API/internal/Storage/sqlite"
 	"API/internal/config"
 	"API/internal/http-server/handlers/url/save"
+	resp "API/internal/lib/api/response"
 	"API/internal/lib/logger/sl"
+	"errors"
+	"net/http"
 	"os"
 
 	"golang.org/x/exp/slog"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/render"
 )
 
 const (
@@ -18,6 +23,13 @@ const (
 	envDev   = "dev"
 	envProd  = "prod"
 )
+
+// URLGetter is an interface for getting url by alias.
+//
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLGetter
+type URLGetter interface {
+	GetURL(alias string) (string, error)
+}
 
 func main() {
 	cfg := config.MustLoad()
@@ -50,4 +62,51 @@ func setupLogger(env string) *slog.Logger {
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 	return log
+}
+
+func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const op = "handlers.url.redicted.New"
+
+		log = log.With(
+			slog.String("op", op),
+			slog.String("request_id", middleware.GetReqID(r.Context())),
+		)
+
+		// Роутер chi позволяет делать вот такие финты -
+		// получать GET-параметры по их именам.
+		// Имена определяются при добавлении хэндлера в роутер, это будет ниже.
+		alias := chi.URLParam(r, "alias")
+		if alias == "" {
+			log.Error("alias is empty")
+
+			render.JSON(w, r, resp.Error("alias is empty"))
+
+			return
+		}
+
+		// Находим URL по алиасу в БД
+		resURL, err := urlGetter.GetURL(alias)
+		if errors.Is(err, storage.ErrURLNotFound) {
+			// Не нашли URL, сообщаем об этом клиенту
+			log.Error("request body is empty")
+
+			render.JSON(w, r, resp.Error("empty request"))
+
+			return
+
+		}
+		if err != nil {
+			log.Error("failed to get URL", sl.Err(err))
+
+			render.JSON(w, r, resp.Error("internal error"))
+
+			return
+
+		}
+
+		log.Info("got url", slog.String("url", resURL))
+
+		http.Redirect(w, r, resURL, http.StatusFound)
+	}
 }
