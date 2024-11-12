@@ -1,7 +1,7 @@
 env : "local"
 storage_path : "./storage/storage.db"
 http_server :
-  address: "localhost:8082"
+  address: "localhost:8082" #у нас скорее всего надо ставить 8080, у нас ведь ничего не запущено на стандартом порту
   timeout: 4s
   idle_timeout: 30s
   user: "my_user"

@@ -13,6 +13,8 @@ type Storage struct {
 	db *sql.DB
 }
 
+// Пока не рабочий калл который надо переделывать
+
 func New(storagePath string) (*Storage, error) {
 	const op = "storage.sqlite.NewStorage" // Имя текущей функции для логов и ошибок
 	//Подключапемся к бд
@@ -59,6 +61,8 @@ func (s *Storage) SaveURL(urlToSave string, alias string) (int64, error) {
 		return 0, fmt.Errorf("%s:execute statement: %w", op, err)
 	}
 	// Получаем id только что созданной записи
+
+	//Примечание: в postgresql что то подобное поддерживается и будет работать
 	id, err := res.LastInsertId()
 	if err != nil {
 		return 0, fmt.Errorf("%s: failet to get last insert id : %w", op, err)

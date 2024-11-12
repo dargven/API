@@ -1,11 +1,14 @@
 package logger
 
 import (
-	"github.com/go-chi/chi/middleware"
-	"golang.org/x/exp/slog"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/middleware"
+	"golang.org/x/exp/slog"
 )
+
+//Его вообще не обязательно писать, можем обойтись и стандартным router.Use(middleware.Logger)
 
 func New(log *slog.Logger) func(next http.Handler) http.Handler {
 
