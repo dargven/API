@@ -7,6 +7,8 @@ import (
 	"github.com/go-playground/validator"
 )
 
+//Ответчик оставляем я думаю его сносить ненадо
+
 type Response struct {
 	Status string `json:"status"`
 	Error  string `json:"error,omitempty"`

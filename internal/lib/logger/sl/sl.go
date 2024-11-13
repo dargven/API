@@ -1,8 +1,10 @@
 package sl
 
 import (
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
+
+//Оставляем удобная штучка для вывода подробностей об ошибке
 
 func Err(err error) slog.Attr {
 	return slog.Attr{
