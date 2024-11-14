@@ -20,8 +20,8 @@ func TestSaveHandler(t *testing.T) {
 		name      string // Имя теста
 		alias     string // Отправляемый alias
 		url       string // Отправляемый URL
-		respError        //Указываем какую ошибку хотим получить
-		mockError        //Ошибка которую выдает mock
+		respError string //Указываем какую ошибку хотим получить
+		mockError error  //Ошибка которую выдает mock
 	}{
 		{
 			name:  "Success",

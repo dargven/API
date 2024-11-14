@@ -26,7 +26,7 @@ type Response struct {
 	Alias string `json:"alias,omitempty"`
 }
 
-//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLSaver
+//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --all
 type URLSaver interface {
 	SaveURL(URL, alias string) (int64, error)
 }
@@ -70,11 +70,12 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		// Создаем объект валидатора
 		// и передаем в него структуру, которую нужно провалидировать
 		if err := validator.New().Struct(req); err != nil {
-			validateError := err.(validator.ValidationErrors)
+			var validateError validator.ValidationErrors
+			errors.As(err, &validateError)
 
 			log.Error("invalid request", sl.Err(err))
 
-			render.JSON(w, r, resp.Error(validateError.Error()))
+			render.JSON(w, r, resp.ValidErrors(validateError))
 		}
 
 		alias := req.Alias
