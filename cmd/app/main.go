@@ -2,7 +2,7 @@ package main
 
 import (
 	storage "API/internal/Storage"
-	"API/internal/Storage/sqlite"
+	"API/internal/Storage/postrgeSQL"
 	"API/internal/config"
 	"API/internal/http-server/handlers/url/save"
 	resp "API/internal/lib/api/response"
@@ -37,10 +37,25 @@ func main() {
 	log = log.With(slog.String("env", cfg.Env))                          //к каждому сообщению будет добавляться поле с информацией о текущем окружении
 	log.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
 	log.Debug("logger debug mode enabled")
-	storage, err := sqlite.New(cfg.StoragePath)
+	//storage, err := sqlite.New(cfg.StoragePath)
+	//if err != nil {
+	//	log.Error("failed to initialize storage", sl.Err(err))
+	//}
+	//db, err := postrgeSQL.NewDatabase(cfg.PostgresDSN)
+	//if err != nil {
+	//	log.Error("Failed to connect to database: %v", err, sl.Err(err))
+	//}
+	//defer db.Close()
+	//if err := db.Ping(); err != nil {
+	//	log.Error("Database ping failed: %v", err, sl.Err(err))
+	//}
+	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)
 	if err != nil {
-		log.Error("failed to initialize storage", sl.Err(err))
+		log.Error("Failed to connect to database: %v", err)
 	}
+	defer db.Close()
+
+	//}
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID) // Добавляет request_id в каждый запрос, для трейсинга(понимания сколько выполняется каждый запрос)
@@ -48,7 +63,7 @@ func main() {
 	//Разобраться как подключить свой logger
 	router.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
 	router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
-	router.Post("/", save.New(log, storage))
+	router.Post("/", save.New(log, db))
 	// Все пути этого роутера будут начинаться с префикса `/url`
 	router.Route("/url", func(r chi.Router) {
 		// Подключаем авторизацию
@@ -59,11 +74,11 @@ func main() {
 			// то можете добавить остальные пары по аналогии.
 		}))
 
-		r.Post("/", save.New(log, storage))
+		//r.Post("/", save.New(log, storage))
 	})
 
 	// Хэндлер redirect остается снаружи, в основном роутере
-	router.Get("/{alias}", redirect.New(log, storage))
+	//router.Get("/{alias}", redirect.New(log, storage))
 }
 
 func setupLogger(env string) *slog.Logger {
