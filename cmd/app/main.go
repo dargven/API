@@ -37,23 +37,11 @@ func main() {
 	log = log.With(slog.String("env", cfg.Env))                          //к каждому сообщению будет добавляться поле с информацией о текущем окружении
 	log.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
 	log.Debug("logger debug mode enabled")
-	//storage, err := sqlite.New(cfg.StoragePath)
-	//if err != nil {
-	//	log.Error("failed to initialize storage", sl.Err(err))
-	//}
-	//db, err := postrgeSQL.NewDatabase(cfg.PostgresDSN)
-	//if err != nil {
-	//	log.Error("Failed to connect to database: %v", err, sl.Err(err))
-	//}
-	//defer db.Close()
-	//if err := db.Ping(); err != nil {
-	//	log.Error("Database ping failed: %v", err, sl.Err(err))
-	//}
 	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)
 	if err != nil {
 		log.Error("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	//defer db.Close()
 
 	//}
 
@@ -74,11 +62,11 @@ func main() {
 			// то можете добавить остальные пары по аналогии.
 		}))
 
-		//r.Post("/", save.New(log, storage))
+		r.Post("/", save.New(log, db))
 	})
 
 	// Хэндлер redirect остается снаружи, в основном роутере
-	//router.Get("/{alias}", redirect.New(log, storage))
+	//router.Get("/{alias}", redirect.New(log, db))
 }
 
 func setupLogger(env string) *slog.Logger {
