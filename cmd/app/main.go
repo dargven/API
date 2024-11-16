@@ -8,6 +8,7 @@ import (
 	resp "API/internal/lib/api/response"
 	"API/internal/lib/logger/sl"
 	"errors"
+	"log"
 	"net/http"
 	"os"
 
@@ -16,6 +17,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -23,6 +25,13 @@ const (
 	envDev   = "dev"
 	envProd  = "prod"
 )
+
+type DataBaseConfig struct {
+	Name     string
+	Password string
+	DBName   string
+	Port     string
+}
 
 // URLGetter is an interface for getting url by alias.
 //
@@ -32,6 +41,11 @@ type URLGetter interface {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file: %s", err)
+	}
+	checkEnvVars()
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 	log = log.With(slog.String("env", cfg.Env))                          //к каждому сообщению будет добавляться поле с информацией о текущем окружении
@@ -128,5 +142,14 @@ func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 		log.Info("got url", slog.String("url", resURL))
 
 		http.Redirect(w, r, resURL, http.StatusFound)
+	}
+}
+
+func checkEnvVars() {
+	requiredVars := []string{"DB_USER", "DB_PASSWORD", "DB_PORT", "DB_NAME", "HTTP_SERVER_PASSWORD", "ENV"}
+	for _, v := range requiredVars {
+		if os.Getenv(v) == "" {
+			log.Fatalf("Environment variable %s is not set", v)
+		}
 	}
 }

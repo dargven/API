@@ -1,16 +1,15 @@
 package postrgeSQL
 
 import (
-	storage "API/internal/Storage"
 	"context"
-	"database/sql"
-	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgconn"
 	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"API/internal/config"
+
 	"github.com/jackc/pgx/v5/pgxpool" // pgx для подключения к PostgreSQL
 )
 
@@ -61,35 +60,52 @@ func (s *Database) Close() {
 	}
 }
 
-func (s *Database) SaveURL(urlToSave string, alias string) (int64, error) {
-	const op = "storage.postgres.SaveURL"
+func (db *Database) AddUser(email, name, password string) (int64, error) {
+	query := `INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING id`
 
-	// Подготавливаем и выполняем запрос
-	query := "INSERT INTO url (url, alias) VALUES ($1, $2) RETURNING id"
 	var id int64
-	err := s.Pool.QueryRow(context.Background(), query, urlToSave, alias).Scan(&id)
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	err := db.Pool.QueryRow(context.Background(), query, email, name, password).Scan(&id)
 	if err != nil {
-		// Обрабатываем ошибку уникальности
-		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Код ошибки уникальности в PostgreSQL
-			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
-		}
-		return 0, fmt.Errorf("%s: execute query: %w", op, err)
+		logger.Error("failed to create user")
+
+		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
+
 	return id, nil
 }
 
-func (s *Database) GetURL(alias string) (string, error) {
-	const op = "storage.postgres.GetURL"
+// func (s *Database) SaveURL(urlToSave string, alias string) (int64, error) {
+// 	const op = "storage.postgres.SaveURL"
 
-	// Выполняем запрос для получения URL
-	query := "SELECT url FROM url WHERE alias = $1"
-	var resURL string
-	err := s.Pool.QueryRow(context.Background(), query, alias).Scan(&resURL)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", fmt.Errorf("%s: URL not found: %w", op, err)
-	} else if err != nil {
-		return "", fmt.Errorf("%s: query execution failed: %w", op, err)
-	}
-	return resURL, nil
-}
+// 	// Подготавливаем и выполняем запрос
+// 	query := "INSERT INTO url (url, alias) VALUES ($1, $2) RETURNING id"
+// 	var id int64
+// 	err := s.Pool.QueryRow(context.Background(), query, urlToSave, alias).Scan(&id)
+// 	if err != nil {
+// 		// Обрабатываем ошибку уникальности
+// 		var pgErr *pgconn.PgError
+// 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Код ошибки уникальности в PostgreSQL
+// 			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
+// 		}
+// 		return 0, fmt.Errorf("%s: execute query: %w", op, err)
+// 	}
+// 	return id, nil
+// }
+
+// func (s *Database) GetURL(alias string) (string, error) {
+// 	const op = "storage.postgres.GetURL"
+
+// 	// Выполняем запрос для получения URL
+// 	query := "SELECT url FROM url WHERE alias = $1"
+// 	var resURL string
+// 	err := s.Pool.QueryRow(context.Background(), query, alias).Scan(&resURL)
+// 	if errors.Is(err, sql.ErrNoRows) {
+// 		return "", fmt.Errorf("%s: URL not found: %w", op, err)
+// 	} else if err != nil {
+// 		return "", fmt.Errorf("%s: query execution failed: %w", op, err)
+// 	}
+// 	return resURL, nil
+// }

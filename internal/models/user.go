@@ -3,6 +3,8 @@ package models
 import (
 	resp "API/internal/lib/api/response"
 	"API/internal/lib/logger/sl"
+	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"net/http"
@@ -11,11 +13,17 @@ import (
 
 	"log/slog"
 
+	"API/internal/Storage/postrgeSQL"
+
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator"
 )
 
 // здесь же описан сам пользак и функции по его добавлению с проверками и отправкой всего в бд
+
+type UserHandler struct {
+	DB *postrgeSQL.Database
+}
 
 type User struct {
 	ID       int64
@@ -24,7 +32,7 @@ type User struct {
 	Password string `validate:"required"`
 }
 
-func newUser(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 
@@ -55,13 +63,13 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, resp.Error(validateError.Error()))
 	}
 
-	// if user.Email == "" || user.Name == "" || user.Password == "" {
-	// 	logger.Error("all fields must be filled")
+	if user.Email == "" || user.Name == "" || user.Password == "" {
+		logger.Error("all fields must be filled")
 
-	// 	render.JSON(w, r, resp.Error("fields are not filled"))
+		render.JSON(w, r, resp.Error("fields are not filled"))
 
-	// 	return
-	// }
+		return
+	}
 
 	if !isEmailValid(user.Email) {
 		logger.Error("email does not match the format")
@@ -69,21 +77,46 @@ func newUser(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, resp.Error("email does not match the format"))
 
 		return
-	} else if isUnique(user.Email) { //уникальность
+	}
+
+	if h.isUnique(user.Email) {
 		logger.Error("email already exist")
 
 		render.JSON(w, r, resp.Error("email already exist"))
 
 		return
-	} // по такому же принципу надо сделать проверку на совпадение
+	}
 
-	//по желанию сложность пароля тоже тут надо реализовать
+	id, err := h.DB.AddUser(user.Email, user.Name, user.Password)
+	if err != nil {
+		logger.Error("failed to create user")
+
+		render.JSON(w, r, resp.Error("failed to create user"))
+
+		return
+	}
+
+	render.JSON(w, r, id)
 
 }
 
-func isUnique(email string) bool {
-	//проверка на уникальность будет реализованна когда поднимем бд
-	return false
+func (h *UserHandler) isUnique(email string) bool {
+	query := `SELECT id FROM users WHERE email = $1`
+
+	var id int64
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	err := h.DB.Pool.QueryRow(context.Background(), query, email).Scan(&id)
+	if err != nil {
+		logger.Error("Error checking email uniqueness:", err)
+		return false
+	}
+	if err == sql.ErrNoRows {
+		return false
+	}
+
+	return true
 }
 
 func isEmailValid(e string) bool {
