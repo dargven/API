@@ -21,7 +21,7 @@ type HTTPServer struct {
 	Timeout     time.Duration `yaml:"timeout" env-default:"5s"`
 	IdleTimeout time.Duration `yaml:"idle_timeout" env-default:"60s"`
 	User        string        `yaml:"user" env-required:"true"`
-	Password    string        `yaml:"password" env-required:"true" env:"HTTP_SERVER_PASSWORD"`
+	//Password    string        `yaml:"password" env-required:"true" env:"HTTP_SERVER_PASSWORD"`
 }
 
 type DataBase struct {
@@ -49,15 +49,15 @@ func MustLoad() *Config {
 		cfg = Config{
 			Env: env,
 			DataBase: DataBase{
-				Host:     os.Getenv("DB_HOST"),
-				Port:     os.Getenv("DB_PORT"),
-				User:     os.Getenv("DB_USER"),
-				Password: os.Getenv("DB_PASSWORD"),
-				Name:     os.Getenv("DB_NAME"),
+				Host:     os.Getenv("POSTGRES_HOST"),
+				Port:     os.Getenv("POSTGRES_PORT"),
+				User:     os.Getenv("POSTGRES_USER"),
+				Password: os.Getenv("POSTGRES_PASSWORD"),
+				Name:     os.Getenv("POSTGRES_NAME"),
 			},
 			HTTPServer: HTTPServer{
-				Address:  os.Getenv("HTTP_SERVER_ADDRESS"),
-				Password: os.Getenv("HTTP_SERVER_PASSWORD"),
+				Address: os.Getenv("HTTP_SERVER_ADDRESS"),
+				// Password: os.Getenv("HTTP_SERVER_PASSWORD"),
 			},
 		}
 	} else {
