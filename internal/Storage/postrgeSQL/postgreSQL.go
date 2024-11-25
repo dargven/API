@@ -50,7 +50,13 @@ func NewDatabase(cfg *config.DataBase) (*Database, error) {
 	}
 
 	log.Println("Successfully connected to the database")
-	return &Database{Pool: pool}, nil
+	db := &Database{Pool: pool}
+
+	if err := db.RunMigrations(); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	return db, nil
 }
 
 // Close закрывает все соединения пула
@@ -75,6 +81,27 @@ func (db *Database) AddUser(email, name, password string) (int64, error) {
 	}
 
 	return id, nil
+}
+
+func (db *Database) RunMigrations() error {
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	query :=
+		`CREATE TABLE IF NOT EXIST users 
+		(
+			id SERIAL PRIMARY KEY
+			email TEXT NOT NULL UNIQUE,
+			name TEXT NOT NULL,
+			password TEXT NOT NULL
+		)`
+
+	_, err := db.Pool.Exec(context.Background(), query)
+	if err != nil {
+		logger.Error("failed to create migration user")
+
+		fmt.Errorf("failed to create migration user: %v", err)
+	}
+	logger.Info("The table was created successfully || has already existed") //как то разделить
+	return nil
 }
 
 // func (s *Database) SaveURL(urlToSave string, alias string) (int64, error) {
