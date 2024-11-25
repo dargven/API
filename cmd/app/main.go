@@ -39,6 +39,9 @@ func main() {
 	log := setupLogger(cfg.Env)
 	log = log.With(slog.String("env", cfg.Env)) //к каждому сообщению будет добавляться поле с информацией о текущем окружении
 	address := cfg.HTTPServer.Address
+
+	fmt.Println(cfg.Address)
+
 	log.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
 	log.Debug("logger debug mode enabled")
 	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)

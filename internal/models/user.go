@@ -58,9 +58,9 @@ func (h *UserHandler) NewUser(w http.ResponseWriter, r *http.Request) {
 	if err := validator.New().Struct(user); err != nil {
 		validateError := err.(validator.ValidationErrors)
 
-		logger.Error("invalid request", sl.Err(err))
+		logger.Error(validateError.Error(), sl.Err(err))
 
-		render.JSON(w, r, resp.Error(validateError.Error()))
+		render.JSON(w, r, resp.Error("invalid request"))
 	}
 
 	if user.Email == "" || user.Name == "" || user.Password == "" {
