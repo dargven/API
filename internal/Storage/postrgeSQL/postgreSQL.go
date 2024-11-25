@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"API/internal/config"
+	"API/internal/lib/logger/sl"
 
 	"github.com/jackc/pgx/v5/pgxpool" // pgx для подключения к PostgreSQL
 )
@@ -86,7 +87,7 @@ func (db *Database) AddUser(email, name, password string) (int64, error) {
 func (db *Database) RunMigrations() error {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	query :=
-		`CREATE TABLE IF NOT EXIST users 
+		`CREATE TABLE IF NOT EXISTS
 		(
 			id SERIAL PRIMARY KEY
 			email TEXT NOT NULL UNIQUE,
@@ -96,11 +97,10 @@ func (db *Database) RunMigrations() error {
 
 	_, err := db.Pool.Exec(context.Background(), query)
 	if err != nil {
-		logger.Error("failed to create migration user")
-
-		fmt.Errorf("failed to create migration user: %v", err)
+		logger.Error("Failed to create migration for table users", sl.Err(err))
+		return fmt.Errorf("failed to create migration for table users: %w", err)
 	}
-	logger.Info("The table was created successfully || has already existed") //как то разделить
+	logger.Info("Migration completed successfully (table created or already exists)") //как то разделить
 	return nil
 }
 
