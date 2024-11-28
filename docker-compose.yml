@@ -12,7 +12,8 @@ services:
       - POSTGRES_HOST=postgres  
       - POSTGRES_PORT=${POSTGRES_PORT}
       - POSTGRES_NAME=${POSTGRES_NAME}
-      - HTTP_SERVER_ADDRESS=${HTTP_SERVER_ADDRESS}  
+      - HTTP_SERVER_ADDRESS=${HTTP_SERVER_ADDRESS}
+      - CONFIG_PATH=/Users/brize/GolandProjects/API/config/local.yaml
     env_file:
       - .env  
     depends_on:

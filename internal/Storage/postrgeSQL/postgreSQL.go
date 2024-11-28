@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"API/internal/config"
-	"API/internal/lib/logger/sl"
-
 	"github.com/jackc/pgx/v5/pgxpool" // pgx для подключения к PostgreSQL
 )
 
@@ -61,9 +59,9 @@ func NewDatabase(cfg *config.DataBase) (*Database, error) {
 }
 
 // Close закрывает все соединения пула
-func (s *Database) Close() {
-	if s.Pool != nil {
-		s.Pool.Close()
+func (db *Database) Close() {
+	if db.Pool != nil {
+		db.Pool.Close()
 	}
 }
 
@@ -84,55 +82,22 @@ func (db *Database) AddUser(email, name, password string) (int64, error) {
 	return id, nil
 }
 
-func (db *Database) RunMigrations() error {
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	query :=
-		`CREATE TABLE IF NOT EXISTS
-		(
-			id SERIAL PRIMARY KEY
-			email TEXT NOT NULL UNIQUE,
-			name TEXT NOT NULL,
-			password TEXT NOT NULL
-		)`
-
-	_, err := db.Pool.Exec(context.Background(), query)
-	if err != nil {
-		logger.Error("Failed to create migration for table users", sl.Err(err))
-		return fmt.Errorf("failed to create migration for table users: %w", err)
-	}
-	logger.Info("Migration completed successfully (table created or already exists)") //как то разделить
+func (db *Database) RunMigrations() error { // Миграции не так пишутся
+	//logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	//query :=
+	//	`CREATE TABLE IF NOT EXISTS
+	//	(
+	//		id SERIAL PRIMARY KEY
+	//		email TEXT NOT NULL UNIQUE,
+	//		name TEXT NOT NULL,
+	//		password TEXT NOT NULL
+	//	)`
+	//
+	//_, err := db.Pool.Exec(context.Background(), query)
+	//if err != nil {
+	//	logger.Error("Failed to create migration for table users", sl.Err(err))
+	//	return fmt.Errorf("failed to create migration for table users: %w", err)
+	//}
+	//logger.Info("Migration completed successfully (table created or already exists)") //как то разделить
 	return nil
 }
-
-// func (s *Database) SaveURL(urlToSave string, alias string) (int64, error) {
-// 	const op = "storage.postgres.SaveURL"
-
-// 	// Подготавливаем и выполняем запрос
-// 	query := "INSERT INTO url (url, alias) VALUES ($1, $2) RETURNING id"
-// 	var id int64
-// 	err := s.Pool.QueryRow(context.Background(), query, urlToSave, alias).Scan(&id)
-// 	if err != nil {
-// 		// Обрабатываем ошибку уникальности
-// 		var pgErr *pgconn.PgError
-// 		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // Код ошибки уникальности в PostgreSQL
-// 			return 0, fmt.Errorf("%s: %w", op, storage.ErrURLExists)
-// 		}
-// 		return 0, fmt.Errorf("%s: execute query: %w", op, err)
-// 	}
-// 	return id, nil
-// }
-
-// func (s *Database) GetURL(alias string) (string, error) {
-// 	const op = "storage.postgres.GetURL"
-
-// 	// Выполняем запрос для получения URL
-// 	query := "SELECT url FROM url WHERE alias = $1"
-// 	var resURL string
-// 	err := s.Pool.QueryRow(context.Background(), query, alias).Scan(&resURL)
-// 	if errors.Is(err, sql.ErrNoRows) {
-// 		return "", fmt.Errorf("%s: URL not found: %w", op, err)
-// 	} else if err != nil {
-// 		return "", fmt.Errorf("%s: query execution failed: %w", op, err)
-// 	}
-// 	return resURL, nil
-// }

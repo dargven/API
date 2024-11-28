@@ -1,10 +1,12 @@
-package main2
+package main
 
 import (
+	_ "API/docs"
 	"API/internal/Storage/postrgeSQL"
 	"API/internal/config"
 	"API/internal/http-server/handlers/test"
 	"fmt"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
@@ -63,6 +65,7 @@ func main() {
 		fmt.Println("Received /test request")
 		w.Write([]byte("Server is working"))
 	})
+	router.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	router.Get("/hello", test.HelloHandler(log))
 
