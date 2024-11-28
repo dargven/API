@@ -38,40 +38,35 @@ func main() {
 	}
 	checkEnvVars()
 	cfg := config.MustLoad()
-	log := setupLogger(cfg.Env)
-	log = log.With(slog.String("env", cfg.Env)) //к каждому сообщению будет добавляться поле с информацией о текущем окружении
+	logger := setupLogger(cfg.Env)
+	logger = logger.With(slog.String("env", cfg.Env)) //к каждому сообщению будет добавляться поле с информацией о текущем окружении
 	address := cfg.HTTPServer.Address
 
 	fmt.Println(cfg.Address)
 
-	log.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
-	log.Debug("logger debug mode enabled")
+	logger.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
+	logger.Debug("logger debug mode enabled")
 	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)
 	if err != nil {
-		log.Error("Failed to connect to database: %v", err)
+		logger.Error("Failed to connect to database: %v", err)
 	}
 	if db != nil {
 		defer db.Close()
 	}
-	//}
 
-	router := chi.NewRouter()
-	router.Use(middleware.RequestID) // Добавляет request_id в каждый запрос, для трейсинга(понимания сколько выполняется каждый запрос)
-	router.Use(middleware.Logger)
-	router.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
-	router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
+	r := chi.NewRouter()
+	r.Use(middleware.RequestID) // Добавляет request_id в каждый запрос, для трейсинга(понимания сколько выполняется каждый запрос)
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
+	r.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
 
-	router.Get("/test", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Received /test request")
-		w.Write([]byte("Server is working"))
-	})
-	router.Get("/swagger/*", httpSwagger.WrapHandler)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	router.Get("/hello", test.HelloHandler(log))
+	r.Get("/", test.GetRootHandler)
 
-	fmt.Printf("Starting server at %s\n", cfg.HTTPServer.Address)
-	if err := http.ListenAndServe(address, router); err != nil {
-		log.Error("Error starting server: %s", err)
+	fmt.Printf("Started server at %s\n", cfg.HTTPServer.Address)
+	if err := http.ListenAndServe(address, r); err != nil {
+		logger.Error("Error starting server: %s", err)
 	}
 }
 

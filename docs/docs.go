@@ -14,7 +14,25 @@ const docTemplate = `{
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
-    "paths": {}
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Это описание эндпоинта",
+                "tags": [
+                    "пример"
+                ],
+                "summary": "Тестовый эндпоинт",
+                "responses": {
+                    "200": {
+                        "description": "Техническая информация",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

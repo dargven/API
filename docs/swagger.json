@@ -3,5 +3,23 @@
     "info": {
         "contact": {}
     },
-    "paths": {}
+    "paths": {
+        "/": {
+            "get": {
+                "description": "Это описание эндпоинта",
+                "tags": [
+                    "пример"
+                ],
+                "summary": "Тестовый эндпоинт",
+                "responses": {
+                    "200": {
+                        "description": "Техническая информация",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

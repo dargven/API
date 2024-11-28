@@ -1,4 +1,15 @@
 info:
   contact: {}
-paths: {}
+paths:
+  /:
+    get:
+      description: Это описание эндпоинта
+      responses:
+        "200":
+          description: Техническая информация
+          schema:
+            type: string
+      summary: Тестовый эндпоинт
+      tags:
+      - пример
 swagger: "2.0"
