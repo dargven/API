@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"API/internal/config"
+
 	"github.com/jackc/pgx/v5/pgxpool" // pgx для подключения к PostgreSQL
 )
 
@@ -51,8 +52,8 @@ func NewDatabase(cfg *config.DataBase) (*Database, error) {
 	log.Println("Successfully connected to the database")
 	db := &Database{Pool: pool}
 
-	if err := db.RunMigrations(); err != nil {
-		log.Fatalf("Failed to run migrations: %v", err)
+	if err := db.checkUserMigration(); err != nil {
+		log.Fatalf("Failed to run user migrations: %v", err)
 	}
 
 	return db, nil
@@ -82,7 +83,7 @@ func (db *Database) AddUser(email, name, password string) (int64, error) {
 	return id, nil
 }
 
-func (db *Database) RunMigrations() error { // Миграции не так пишутся
+func (db *Database) checkUserMigration() error { // Миграции не так пишутся
 	//logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	//query :=
 	//	`CREATE TABLE IF NOT EXISTS

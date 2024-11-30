@@ -39,14 +39,6 @@ type UserResponse struct {
 //	render.JSON(w, r, resp.Error("invalid request"))
 //} Вынести в отдельный обработчик handler
 
-//if user.Email == "" || user.Name == "" || user.Password == "" {
-//	logger.Error("all fields must be filled")
-//
-//	render.JSON(w, r, resp.Error("fields are not filled"))
-//
-//	return
-//} Придумать альтернативную проверку с помощью валидации. Где должна
-
 //	if !isEmailValid(user.Email) {
 //		logger.Error("email does not match the format")
 //

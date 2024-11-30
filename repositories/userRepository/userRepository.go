@@ -5,11 +5,12 @@ import (
 	resp "API/internal/lib/api/response"
 	"API/internal/models/user"
 	"errors"
-	"github.com/go-chi/render"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"github.com/go-chi/render"
 )
 
 type userRepository struct {
@@ -29,3 +30,4 @@ func (h *userRepository) NewUser(w http.ResponseWriter, r *http.Request) {
 
 		return
 	}
+}
