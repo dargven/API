@@ -1,7 +1,9 @@
 package response
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/go-playground/validator"
@@ -50,5 +52,15 @@ func ValidErrors(errs validator.ValidationErrors) Response {
 	return Response{
 		Status: StatusError,
 		Error:  strings.Join(errMsgs, ", "),
+	}
+}
+func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
+	// Устанавливаем заголовки
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	// Кодируем данные в JSON и отправляем их
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }

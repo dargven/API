@@ -3,26 +3,28 @@ package bookingrepository
 import (
 	"API/internal/Storage/postrgeSQL"
 	"API/internal/lib/logger/sl"
-	book "API/internal/models/booking"
+	event "API/internal/models/event"
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 )
 
-type bookingRep struct {
+type BookingRep struct {
 	h      *postrgeSQL.Database
 	logger *slog.Logger
 }
 
-func NewBookingRep(db *postrgeSQL.Database) *bookingRep {
-	return &bookingRep{
+func NewBookingRep(db *postrgeSQL.Database) *BookingRep {
+	return &BookingRep{
 		h:      db,
 		logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),
 	}
 }
 
-func (h *bookingRep) bookingMigrations() error {
+func (h *BookingRep) bookingMigrations() error {
 	query :=
 		` 
 	CREATE TABLE IF NOT EXISTS bookings (
@@ -37,27 +39,27 @@ func (h *bookingRep) bookingMigrations() error {
 	`
 	_, err := h.h.Pool.Exec(context.Background(), query)
 	if err != nil {
-		h.logger.Error("Failed to create migration for table booking", sl.Err(err))
-		return fmt.Errorf("failed to create migration for table booking: %w", err)
+		h.logger.Error("Failed to create migration for table event", sl.Err(err))
+		return fmt.Errorf("failed to create migration for table event: %w", err)
 	}
 	h.logger.Info("Migration completed successfully (table created or already exists)")
 	return nil
 
 }
 
-func (h *bookingRep) AddBooking(book book.Booking) (int64, error) {
+func (h *BookingRep) AddBooking(event event.Event) (int64, error) {
 	query := `INSERT INTO bookings (user_id, event_id, status, created_at) VALUES ($1, $2, $3, $4) RETURNING id`
-	err := h.h.Pool.QueryRow(context.Background(), query, book.User_id, book.Event_id, book.Status, book.Created_at).Scan(&book.ID)
+	err := h.h.Pool.QueryRow(context.Background(), query, event.UserId, event.EventId, event.Status, event.CreatedAt).Scan(&event.ID)
 	if err != nil {
-		h.logger.Error("failed to create booking")
+		h.logger.Error("failed to create event")
 
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return book.ID, nil
+	return event.ID, nil
 }
 
-func (h *bookingRep) GetBookings(eventID int) ([]book.Booking, error) { // пока так
+func (h *BookingRep) GetBookings(eventID int) ([]event.Event, error) { // пока так
 	query := `SELECT id, user_id, event_id, status, created_at FROM bookings WHERE event_id = $1;`
 
 	rows, err := h.h.Pool.Query(context.Background(), query, eventID)
@@ -66,11 +68,11 @@ func (h *bookingRep) GetBookings(eventID int) ([]book.Booking, error) { // по�
 	}
 	defer rows.Close()
 
-	var bookings []book.Booking
+	var bookings []event.Event
 	for rows.Next() {
-		var booking book.Booking
-		if err := rows.Scan(&booking.ID, &booking.User_id, &booking.Event_id, &booking.Status, &booking.Created_at); err != nil {
-			return nil, fmt.Errorf("failed to scan booking: %w", err)
+		var booking event.Event
+		if err := rows.Scan(&booking.ID, &booking.UserId, &booking.EventId, &booking.Status, &booking.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan event: %w", err)
 		}
 		bookings = append(bookings, booking)
 	}
@@ -81,7 +83,7 @@ func (h *bookingRep) GetBookings(eventID int) ([]book.Booking, error) { // по�
 	return bookings, nil
 }
 
-func (h *bookingRep) PostBooking(book book.Booking) error {
+func (h *BookingRep) PostBooking(book event.Event) error {
 	query := `UPDATE bookings SET status = $1 WHERE id = $2;`
 	_, err := h.h.Pool.Exec(context.Background(), query, book.Status, book.ID)
 	if err != nil {
@@ -93,13 +95,34 @@ func (h *bookingRep) PostBooking(book book.Booking) error {
 	return nil
 }
 
-func (h *bookingRep) DelBooking(book book.Booking) error {
+func (h *BookingRep) DelBooking(book event.Event) error {
 	query := `DELETE FROM bookings WHERE id = $1;`
 	_, err := h.h.Pool.Exec(context.Background(), query, book.ID)
 	if err != nil {
-		h.logger.Error("failed to delete booking")
+		h.logger.Error("failed to delete event")
 
-		return fmt.Errorf("failed to delete booking: %w", err)
+		return fmt.Errorf("failed to delete event: %w", err)
 	}
 	return nil
+}
+func (h *BookingRep) FetchEventByID(eventID int) (event.Event, error) {
+	query := "SELECT id, title, description, date, location FROM events WHERE id = $1"
+	var fetchedEvent event.Event
+
+	// Выполнение запроса
+	err := h.h.Pool.QueryRow(context.Background(), query, eventID).Scan(
+		&fetchedEvent.ID,
+		//&fetchedEvent.Title,
+		//&fetchedEvent.Description,
+		//&fetchedEvent.Date,
+		//&fetchedEvent.Location,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return fetchedEvent, fmt.Errorf("event with id %d not found", eventID)
+		}
+		return fetchedEvent, fmt.Errorf("failed to fetch event: %w", err)
+	}
+
+	return fetchedEvent, nil
 }
