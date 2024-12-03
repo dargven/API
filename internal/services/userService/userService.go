@@ -9,3 +9,5 @@ type UserService struct {
 func (s *UserService) isEmailUnique(email string) (bool, error) {
 	return true, nil
 }
+
+//Доделать

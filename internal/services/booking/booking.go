@@ -1,9 +1,9 @@
 package booking
 
-import "API/repositories/bookingRepository"
+import bookingrepository "API/repositories/eventRepository"
 
 type Service struct {
-	bookingRep *bookingrepository.BookingRep
+	bookingRep *bookingrepository.EventRep
 }
 
 func (s *Service) FetchEventByID() {

@@ -10,7 +10,7 @@ import (
 // @Success 200 {string} string "Техническая информация"
 // @Router / [get]
 func GetRootHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := w.Write([]byte("Сервер запущен успешно"))
+	_, err := w.Write([]byte("Сервер запущен"))
 	if err != nil {
 		return
 	}

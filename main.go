@@ -7,10 +7,11 @@ import (
 	"API/internal/http-server/handlers/booking"
 	"API/internal/http-server/handlers/test"
 	"fmt"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 
 	"log/slog"
 
@@ -43,9 +44,6 @@ func main() {
 	logger = logger.With(slog.String("env", cfg.Env)) //к каждому сообщению будет добавляться поле с информацией о текущем окружении
 	address := cfg.HTTPServer.Address
 	handlerB := booking.Handler{}
-
-	fmt.Println(cfg.Address)
-
 	logger.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
 	logger.Debug("logger debug mode enabled")
 	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)
@@ -66,6 +64,7 @@ func main() {
 
 	r.Get("/", test.GetRootHandler)
 	r.Get("/book/{event_id}", handlerB.GetEventByID)
+	r.Get("/book/events", handlerB.AllEvents)
 
 	fmt.Printf("Started server at %s\n", cfg.HTTPServer.Address)
 	if err := http.ListenAndServe(address, r); err != nil {
