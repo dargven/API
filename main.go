@@ -62,6 +62,12 @@ func main() {
 
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
+	r.Route("/book", func(r chi.Router) {
+		r.Use(middleware.BasicAuth("API", map[string]string{
+			cfg.DataBase.User: cfg.DataBase.Password,
+		}))
+	})
+
 	r.Get("/", test.GetRootHandler)
 	r.Get("/book/{event_id}", handlerB.GetEventByID)
 	r.Get("/book/events", handlerB.AllEvents)
