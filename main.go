@@ -66,7 +66,10 @@ func main() {
 		r.Use(middleware.BasicAuth("API", map[string]string{
 			cfg.DataBase.User: cfg.DataBase.Password,
 		}))
-	})
+
+		// сюда добавить Post соответственно
+		//насрать хендлерами для удаления и т.д.
+	}) //если не работает до вместо database ебануть HTTPServer
 
 	r.Get("/", test.GetRootHandler)
 	r.Get("/book/{event_id}", handlerB.GetEventByID)
