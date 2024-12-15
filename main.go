@@ -7,11 +7,10 @@ import (
 	"API/internal/http-server/handlers/booking"
 	"API/internal/http-server/handlers/test"
 	"fmt"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"log"
 	"net/http"
 	"os"
-
-	httpSwagger "github.com/swaggo/http-swagger"
 
 	"log/slog"
 
@@ -60,8 +59,6 @@ func main() {
 	r.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
 	r.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
 
-	r.Get("/swagger/*", httpSwagger.WrapHandler)
-
 	r.Route("/book", func(r chi.Router) {
 		r.Use(middleware.BasicAuth("API", map[string]string{
 			cfg.DataBase.User: cfg.DataBase.Password,
@@ -74,6 +71,7 @@ func main() {
 	r.Get("/", test.GetRootHandler)
 	r.Get("/book/{event_id}", handlerB.GetEventByID)
 	r.Get("/book/events", handlerB.AllEvents)
+	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	fmt.Printf("Started server at %s\n", cfg.HTTPServer.Address)
 	if err := http.ListenAndServe(address, r); err != nil {
@@ -82,16 +80,16 @@ func main() {
 }
 
 func setupLogger(env string) *slog.Logger {
-	var log *slog.Logger
+	var logger *slog.Logger
 	switch env {
 	case envLocal:
-		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envDev:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
-		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
-	return log
+	return logger
 }
 
 func checkEnvVars() {

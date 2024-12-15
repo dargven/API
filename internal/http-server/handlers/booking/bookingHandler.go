@@ -18,6 +18,11 @@ type Handler struct {
 	EventRep *bookingrepository.EventRep
 }
 
+// @Summary Получить мероприятие
+// @Description Получить мероприятие по ID
+// @Tags events
+// @Success 200 {string} string "event"
+// @Router / [get]
 func (h *Handler) GetEventByID(w http.ResponseWriter, r *http.Request) {
 	eventIDParam := chi.URLParam(r, "event_id")
 	eventID, err := strconv.Atoi(eventIDParam)

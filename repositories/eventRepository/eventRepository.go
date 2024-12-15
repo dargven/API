@@ -99,7 +99,7 @@ func (h *EventRep) AddEvent(event event.Event) (int64, error) {
 }
 
 func (h *EventRep) GetEvent(id int) (event.Event, error) {
-	query := `SELECT id, user_id, title, description, date, location, status, created_at FROM events WHERE id = $1;`
+	query := `SELECT  user_id, title, description, date, location, status, created_at FROM events WHERE id = $1;`
 
 	var ev event.Event
 
