@@ -1,11 +1,11 @@
-package userHandler
+package user
 
 import (
 	"API/internal/services/userService"
 	"log/slog"
 )
 
-type UserHandler struct { // Вынести в отдельный handler
+type Handler struct { // Вынести в отдельный handler
 	logger  *slog.Logger
 	Service *userService.UserService
 }

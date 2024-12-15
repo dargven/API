@@ -64,3 +64,11 @@ func JSON(w http.ResponseWriter, statusCode int, data interface{}) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
 }
+
+func Success(m map[string]interface{}) interface{} {
+	response := map[string]interface{}{
+		"status": "OK",
+		"data":   m,
+	}
+	return response
+}

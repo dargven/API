@@ -52,10 +52,6 @@ func NewDatabase(cfg *config.DataBase) (*Database, error) {
 	log.Println("Successfully connected to the database")
 	db := &Database{Pool: pool}
 
-	if err := db.checkUserMigration(); err != nil {
-		log.Fatalf("Failed to run user migrations: %v", err)
-	}
-
 	return db, nil
 }
 
@@ -81,24 +77,4 @@ func (db *Database) AddUser(email, name, password string) (int64, error) {
 	}
 
 	return id, nil
-}
-
-func (db *Database) checkUserMigration() error { // Миграции не так пишутся
-	//logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	//query :=
-	//	`CREATE TABLE IF NOT EXISTS
-	//	(
-	//		id SERIAL PRIMARY KEY
-	//		email TEXT NOT NULL UNIQUE,
-	//		name TEXT NOT NULL,
-	//		password TEXT NOT NULL
-	//	)`
-	//
-	//_, err := db.Pool.Exec(context.Background(), query)
-	//if err != nil {
-	//	logger.Error("Failed to create migration for table users", sl.Err(err))
-	//	return fmt.Errorf("failed to create migration for table users: %w", err)
-	//}
-	//logger.Info("Migration completed successfully (table created or already exists)") //как то разделить
-	return nil
 }

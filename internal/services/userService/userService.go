@@ -1,13 +1,23 @@
 package userService
 
-import "API/internal/Storage/postrgeSQL"
+import (
+	repo "API/repositories/userRepository"
+	"errors"
+	"gorm.io/gorm"
+)
 
 type UserService struct {
-	DB *postrgeSQL.Database
+	repo *repo.UserRepository
 }
 
-func (s *UserService) isEmailUnique(email string) (bool, error) {
-	return true, nil
+func NewUserService(repo *repo.UserRepository) *UserService {
+	return &UserService{repo: repo}
 }
 
-//Доделать
+func (s *UserService) IsEmailUnique(email string) (bool, error) {
+	user, err := s.repo.IsEmailUnique(email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, err // ошибка при запросе
+	}
+	return user == nil, nil // true, если пользователь не найден
+}
