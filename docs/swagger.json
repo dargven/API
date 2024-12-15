@@ -8,12 +8,53 @@
             "get": {
                 "description": "Это описание эндпоинта",
                 "tags": [
-                    "пример"
+                    "пример23"
                 ],
                 "summary": "Тестовый эндпоинт",
                 "responses": {
                     "200": {
                         "description": "Техническая информация",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/": {
+            "get": {
+                "description": "Получить мероприятия",
+                "tags": [
+                    "events"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "event",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/events/{event_id}": {
+            "get": {
+                "description": "Получить мероприятие по ID",
+                "tags": [
+                    "events"
+                ],
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID мероприятия",
+                        "name": "event_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "event",
                         "schema": {
                             "type": "string"
                         }

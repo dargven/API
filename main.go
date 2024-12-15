@@ -69,8 +69,8 @@ func main() {
 	}) //если не работает до вместо database ебануть HTTPServer
 
 	r.Get("/", test.GetRootHandler)
-	r.Get("/book/{event_id}", handlerB.GetEventByID)
-	r.Get("/book/events", handlerB.AllEvents)
+	r.Get("/events/{event_id}", handlerB.GetEventByID)
+	r.Get("/events/", handlerB.AllEvents)
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	fmt.Printf("Started server at %s\n", cfg.HTTPServer.Address)

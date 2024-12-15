@@ -18,11 +18,12 @@ type Handler struct {
 	EventRep *bookingrepository.EventRep
 }
 
-// @Summary Получить мероприятие
+// GetEventByID @Summary Получить мероприятие
 // @Description Получить мероприятие по ID
 // @Tags events
-// @Success 200 {string} string "event"
-// @Router / [get]
+// @Param        event_id  path      int  true  "ID мероприятия"
+// @Success 200 {string} event "event"
+// @Router /events/{event_id} [get]
 func (h *Handler) GetEventByID(w http.ResponseWriter, r *http.Request) {
 	eventIDParam := chi.URLParam(r, "event_id")
 	eventID, err := strconv.Atoi(eventIDParam)
@@ -40,6 +41,11 @@ func (h *Handler) GetEventByID(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, event)
 }
 
+// AllEvents  @Summary Получить все мероприятия
+// @Description Получить мероприятия
+// @Tags events
+// @Success 200 {string} event "event"
+// @Router /events/ [get]
 func (h *Handler) AllEvents(w http.ResponseWriter, r *http.Request) {
 	eventsList, err := h.EventRep.GetAllEvents()
 	if err != nil {

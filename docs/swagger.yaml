@@ -11,5 +11,31 @@ paths:
             type: string
       summary: Тестовый эндпоинт
       tags:
-      - пример
+      - пример23
+  /events/:
+    get:
+      description: Получить мероприятия
+      responses:
+        "200":
+          description: event
+          schema:
+            type: string
+      tags:
+      - events
+  /events/{event_id}:
+    get:
+      description: Получить мероприятие по ID
+      parameters:
+      - description: ID мероприятия
+        in: path
+        name: event_id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: event
+          schema:
+            type: string
+      tags:
+      - events
 swagger: "2.0"
