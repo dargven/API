@@ -8,7 +8,6 @@ require (
 	github.com/go-chi/chi v1.5.5
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.7.1
-	github.com/lib/pq v1.10.9
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4
 	gorm.io/gorm v1.25.12
