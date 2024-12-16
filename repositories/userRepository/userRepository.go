@@ -65,16 +65,16 @@ func (r *UserRepository) IsEmailUnique(ctx context.Context, email string) (bool,
 func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*user.User, error) {
 	const query = "SELECT id, email, name FROM users WHERE id = $1"
 
-	var user user.User
-	err := r.db.Pool.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Email, &user.Name)
+	var u user.User
+	err := r.db.Pool.QueryRow(ctx, query, userID).Scan(&u.ID, &u.Email, &u.Name)
 	if err != nil {
 		if isNotFoundError(err) {
-			return nil, errors.New("user not found")
+			return nil, errors.New("u not found")
 		}
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+		return nil, fmt.Errorf("failed to get u by ID: %w", err)
 	}
 
-	return &user, nil
+	return &u, nil
 }
 
 // DeleteUser удаляет пользователя по его ID
@@ -96,6 +96,18 @@ func (r *UserRepository) DeleteUser(ctx context.Context, userID uint) error {
 	}
 
 	return nil
+}
+func (r *UserRepository) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
+	query := `SELECT id, name, email, password FROM users WHERE email = $1`
+	var u user.User
+	err := r.db.Pool.QueryRow(ctx, query, email).Scan(&u.ID, &u.Name, &u.Email, &u.Password)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, nil // Пользователь не найден
+		}
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+	return &u, nil
 }
 
 // isUniqueViolationError проверяет, является ли ошибка нарушением уникальности

@@ -44,7 +44,10 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgeSQL.Database)
 
 	// Тестовый маршрут
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Welcome to API"))
+		_, err := w.Write([]byte("Welcome to API"))
+		if err != nil {
+			return
+		}
 	})
 
 	return r

@@ -2,11 +2,13 @@ package userHandler
 
 import (
 	"API/internal/models/user"
+	"API/internal/services/userService"
 	"API/repositories/userRepository"
 	"errors"
 	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,8 +16,9 @@ import (
 )
 
 type UserHandler struct {
-	repo   *userRepository.UserRepository
-	logger *slog.Logger
+	repo    *userRepository.UserRepository
+	logger  *slog.Logger
+	service *userService.UserService
 }
 
 // NewUserHandler создает новый экземпляр UserHandler
@@ -37,11 +40,15 @@ func NewUserHandler(repo *userRepository.UserRepository) *UserHandler {
 // @Router       /users [post]
 func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-
+	validate := validator.New()
 	var req user.CreateUserRequest
 	if err := render.DecodeJSON(r.Body, &req); err != nil {
 		h.logger.Error("Invalid JSON input", "error", err)
 		render.JSON(w, r, map[string]string{"error": "invalid request body"})
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		http.Error(w, "e-mail недействительный", http.StatusBadRequest)
 		return
 	}
 
@@ -179,6 +186,35 @@ func (h *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 	render.JSON(w, r, map[string]string{
 		"message": "User deleted successfully",
 	})
+}
+
+// LoginHandler авторизует пользователя по email и паролю.
+//
+// @Summary Авторизация пользователя
+// @Description Проверяет учетные данные пользователя и возвращает информацию о нем.
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body user.LoginUser true "Данные для авторизации"
+// @Success 200 {object} user.LoginUser "Успешная авторизация"
+// @Router /users/login [post]
+func (h *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var req user.LoginUser
+	if err := render.DecodeJSON(r.Body, &req); err != nil {
+		h.logger.Error("Invalid request body", "error", err)
+		render.JSON(w, r, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	userResp, err := h.service.Login(r.Context(), req.Email, req.Password)
+	if err != nil {
+		h.logger.Error("Failed to login", "error", err)
+		render.JSON(w, r, map[string]string{"error": err.Error()})
+		return
+	}
+
+	// Отправляем успешный ответ
+	render.JSON(w, r, userResp)
 }
 
 // Вспомогательная функция для извлечения userID из параметров запроса

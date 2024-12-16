@@ -125,6 +125,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/login": {
+            "post": {
+                "description": "Проверяет учетные данные пользователя и возвращает информацию о нем.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Авторизация пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные для авторизации",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/user.LoginUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешная авторизация",
+                        "schema": {
+                            "$ref": "#/definitions/user.LoginUser"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Retrieves information about a user by their ID.",
@@ -235,6 +269,17 @@ const docTemplate = `{
                 }
             }
         },
+        "user.LoginUser": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "user.UserResponse": {
             "type": "object",
             "properties": {
@@ -242,7 +287,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-                    "description": "Возможно придется убрать json",
                     "type": "string"
                 }
             }

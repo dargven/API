@@ -10,11 +10,16 @@ type User struct {
 }
 
 type CreateUserRequest struct {
-	Email    string `validate:"required,email"`
+	Email    string `json:"email" validate:"required,email"`
 	Name     string `validate:"required"`
 	Password string `validate:"required"`
 }
 type UserResponse struct {
 	Email string `json:"email"`
-	Name  string `json:"name"` // Возможно придется убрать json
+	Name  string `json:"name"`
+}
+
+type LoginUser struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }

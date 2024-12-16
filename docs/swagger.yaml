@@ -12,12 +12,18 @@ definitions:
     - name
     - password
     type: object
+  user.LoginUser:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
   user.UserResponse:
     properties:
       email:
         type: string
       name:
-        description: Возможно придется убрать json
         type: string
     type: object
 info:
@@ -151,6 +157,29 @@ paths:
               type: string
             type: object
       summary: Get user by ID
+      tags:
+      - Users
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Проверяет учетные данные пользователя и возвращает информацию о
+        нем.
+      parameters:
+      - description: Данные для авторизации
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешная авторизация
+          schema:
+            $ref: '#/definitions/user.LoginUser'
+      summary: Авторизация пользователя
       tags:
       - Users
 swagger: "2.0"
