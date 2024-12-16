@@ -3,10 +3,14 @@ package userHandler
 import (
 	"API/internal/models/user"
 	"API/repositories/userRepository"
+	"errors"
+	"fmt"
+	"github.com/go-chi/chi"
 	"github.com/go-chi/render"
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type UserHandler struct {
@@ -179,6 +183,19 @@ func (h *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) 
 
 // Вспомогательная функция для извлечения userID из параметров запроса
 func parseUserID(r *http.Request) (uint, error) {
-	// Реализуйте извлечение userID из пути или параметров запроса
-	return 0, nil // Временная заглушка
+	userIDStr := chi.URLParam(r, "user_id")
+	if userIDStr == "" {
+		return 0, errors.New("user_id not provided in the URL")
+	}
+
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid user_id format: %w", err)
+	}
+
+	if userID <= 0 {
+		return 0, errors.New("user_id must be a positive integer")
+	}
+
+	return uint(userID), nil
 }
