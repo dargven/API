@@ -2,90 +2,108 @@ package userRepository
 
 import (
 	"API/internal/Storage/postrgeSQL"
-	resp "API/internal/lib/api/response"
 	"API/internal/models/user"
 	"context"
 	"errors"
-	"github.com/go-chi/render"
-	_ "github.com/lib/pq"
-	"io"
-	"log"
-	"log/slog"
-	"net/http"
-	"os"
+	"fmt"
 )
 
+// UserRepository управляет взаимодействием с таблицей пользователей
 type UserRepository struct {
 	db *postrgeSQL.Database
 }
 
+// NewUserRepository создает новый экземпляр UserRepository
 func NewUserRepository(db *postrgeSQL.Database) *UserRepository {
 	return &UserRepository{db: db}
 }
 
-func (h *UserRepository) NewUser(w http.ResponseWriter, r *http.Request) {
-	var userRequest user.CreateUserRequest
-	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+// NewUser добавляет нового пользователя в базу данных
+func (r *UserRepository) NewUser(ctx context.Context, req user.CreateUserRequest) (*user.User, error) {
+	const query = `
+		INSERT INTO users (email, name, password) 
+		VALUES ($1, $2, $3) 
+		RETURNING id, email, name
+	`
 
-	err := render.DecodeJSON(r.Body, &userRequest)
-	if errors.Is(err, io.EOF) {
-		// Если тело запроса пусто
-		logger.Error("body is empty")
-		render.JSON(w, r, resp.Error("body is empty"))
-		return
+	newUser := &user.User{
+		Email:    req.Email,
+		Name:     req.Name,
+		Password: req.Password,
 	}
+
+	err := r.db.Pool.QueryRow(ctx, query, req.Email, req.Name, req.Password).
+		Scan(&newUser.ID, &newUser.Email, &newUser.Name)
 	if err != nil {
-		logger.Error("failed to decode JSON", "error", err)
-		render.JSON(w, r, resp.Error("invalid request body"))
-		return
+		if isUniqueViolationError(err) {
+			return nil, errors.New("user with this email already exists")
+		}
+		return nil, fmt.Errorf("failed to insert user: %w", err)
 	}
 
-	const query = "INSERT INTO users (email, name, password) VALUES ($1, $2, $3) RETURNING id"
-	ctx := context.Background()
-
-	var userID int64
-	err = h.db.Pool.QueryRow(ctx, query, userRequest.Email, userRequest.Name, userRequest.Password).Scan(&userID)
-	if err != nil {
-		logger.Error("failed to create user", "error", err)
-		render.JSON(w, r, resp.Error("failed to create user"))
-		return
-	}
-
-	logger.Info("user created successfully", "userID", userID)
-	render.JSON(w, r, resp.Success(map[string]interface{}{
-		"user_id": userID,
-		"message": "User created successfully",
-	}))
+	return newUser, nil
 }
-func (h *UserRepository) IsEmailUnique(email string) (bool, error) {
+
+// IsEmailUnique проверяет, уникален ли email
+func (r *UserRepository) IsEmailUnique(ctx context.Context, email string) (bool, error) {
 	if email == "" {
-		log.Println("[DEBUG] Email is empty")
 		return false, errors.New("email cannot be empty")
 	}
 
 	const query = "SELECT COUNT(*) FROM users WHERE email = $1"
-	log.Printf("[DEBUG] Executing query: %s with email: %s", query, email)
-
-	ctx := context.Background()
-	rows, err := h.db.Pool.Query(ctx, query, email)
-	if err != nil {
-		log.Printf("[ERROR] Failed to execute query: %v", err)
-		return false, err
-	}
-	defer rows.Close()
 
 	var count int
-	if rows.Next() {
-		if err := rows.Scan(&count); err != nil {
-			log.Printf("[ERROR] Failed to scan row: %v", err)
-			return false, err
-		}
+	err := r.db.Pool.QueryRow(ctx, query, email).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("failed to check email uniqueness: %w", err)
 	}
 
-	log.Printf("[DEBUG] Query result - count: %d", count)
+	return count == 0, nil
+}
 
-	isUnique := count == 0
-	log.Printf("[DEBUG] Email is unique: %v", isUnique)
+// GetUserByID возвращает пользователя по его ID
+func (r *UserRepository) GetUserByID(ctx context.Context, userID uint) (*user.User, error) {
+	const query = "SELECT id, email, name FROM users WHERE id = $1"
 
-	return isUnique, nil
+	var user user.User
+	err := r.db.Pool.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Email, &user.Name)
+	if err != nil {
+		if isNotFoundError(err) {
+			return nil, errors.New("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+	}
+
+	return &user, nil
+}
+
+// DeleteUser удаляет пользователя по его ID
+func (r *UserRepository) DeleteUser(ctx context.Context, userID uint) error {
+	const query = "DELETE FROM users WHERE id = $1"
+
+	result, err := r.db.Pool.Exec(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("user not found")
+	}
+
+	return nil
+}
+
+// isUniqueViolationError проверяет, является ли ошибка нарушением уникальности
+func isUniqueViolationError(err error) bool {
+	return err != nil && err.Error() == "unique_violation"
+}
+
+// isNotFoundError проверяет, является ли ошибка отсутствием данных
+func isNotFoundError(err error) bool {
+	return err != nil && err.Error() == "no rows in result set"
 }
