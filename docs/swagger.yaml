@@ -19,7 +19,7 @@ definitions:
       password:
         type: string
     type: object
-  user.UserResponse:
+  user.Response:
     properties:
       email:
         type: string
@@ -84,7 +84,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.UserResponse'
+            $ref: '#/definitions/user.Response'
         "400":
           description: Invalid request body
           schema:
@@ -143,7 +143,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.UserResponse'
+            $ref: '#/definitions/user.Response'
         "404":
           description: User not found
           schema:

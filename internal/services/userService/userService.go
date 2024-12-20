@@ -26,17 +26,6 @@ func (s *UserService) IsEmailUnique(ctx context.Context, email string) (bool, er
 	return user == false, nil // true, если пользователь не найден
 }
 
-//	func (s *UserService) CreateUser(req user.CreateUserRequest) (*user.User, error) {
-//		newUser := &user.User{
-//			Email:    req.Email,
-//			Password: req.Password, // Здесь можно добавить хэширование
-//		}
-//
-//		if err := s.Repo.Create(newUser); err != nil {
-//			return nil, err
-//		}
-//		return newUser, nil
-//	}
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -44,26 +33,52 @@ func HashPassword(password string) (string, error) {
 	}
 	return string(hash), nil
 }
+func (s *UserService) RegisterUser(ctx context.Context, req user.CreateUserRequest) (*user.User, error) {
+	// Проверяем уникальность email
+	isUnique, err := s.repo.IsEmailUnique(ctx, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check email uniqueness: %w", err)
+	}
+	if !isUnique {
+		return nil, errors.New("email is already in use")
+	}
+
+	// Хэшируем пароль
+	hashedPassword, err := HashPassword(req.Password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
+	}
+	req.Password = hashedPassword
+
+	// Создаем пользователя в базе данных
+	newUser, err := s.repo.NewUser(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	return newUser, nil
+}
+
 func ComparePassword(hashedPassword, password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	return err == nil
 }
-func (s *UserService) Login(ctx context.Context, email, password string) (*user.UserResponse, error) {
+
+func (s *UserService) Login(ctx context.Context, email, password string) (*user.User, error) {
+	// Проверяем, есть ли пользователь с данным email
 	foundUser, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) || foundUser == nil {
+			return nil, errors.New("user not found")
+		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
-	if foundUser == nil {
-		return nil, fmt.Errorf("user not found")
-	}
 
+	// Проверяем пароль
 	if !ComparePassword(foundUser.Password, password) {
-		return nil, fmt.Errorf("invalid password")
+		return nil, errors.New("invalid password")
 	}
 
-	// Возвращаем успешный ответ
-	return &user.UserResponse{
-		Name:  foundUser.Name,
-		Email: foundUser.Email,
-	}, nil
+	// Успешная авторизация, возвращаем данные пользователя
+	return foundUser, nil
 }

@@ -5,13 +5,13 @@ import (
 	"API/internal/config"
 	"API/internal/http-server/handlers/booking"
 	userHandler "API/internal/http-server/handlers/user"
+	service "API/internal/services/userService"
 	"API/repositories/userRepository"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"log/slog"
-	"net/http"
 )
 
 func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgeSQL.Database) *chi.Mux {
@@ -25,13 +25,15 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgeSQL.Database)
 
 	// Настройка репозиториев и хендлеров
 	userRepo := userRepository.NewUserRepository(db)
-	newUserHandler := userHandler.NewUserHandler(userRepo)
-
+	handler := userHandler.NewUserHandler(userRepo)
+	service.NewUserService(userRepo)
+	//
 	// Маршруты для пользователей
 	r.Route("/users", func(r chi.Router) {
-		r.Get("/{user_id}", newUserHandler.GetUserByIDHandler)
-		r.Post("/", newUserHandler.CreateUserHandler)
-		r.Delete("/{user_id}", newUserHandler.DeleteUserHandler)
+		r.Get("/{user_id}", handler.GetUserByIDHandler)
+		r.Post("/", handler.CreateUserHandler)
+		r.Post("/login", handler.LoginHandler)
+		r.Delete("/{user_id}", handler.DeleteUserHandler)
 	})
 
 	// Маршруты для бронирований
@@ -41,14 +43,6 @@ func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgeSQL.Database)
 
 	// Swagger
 	r.Get("/swagger/*", httpSwagger.WrapHandler)
-
-	// Тестовый маршрут
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		_, err := w.Write([]byte("Welcome to API"))
-		if err != nil {
-			return
-		}
-	})
 
 	return r
 }

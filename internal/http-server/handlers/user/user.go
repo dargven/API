@@ -1,7 +1,7 @@
 package userHandler
 
 import (
-	"API/internal/models/user"
+	user "API/internal/models/user"
 	"API/internal/services/userService"
 	"API/repositories/userRepository"
 	"errors"
@@ -24,7 +24,8 @@ type UserHandler struct {
 // NewUserHandler создает новый экземпляр UserHandler
 func NewUserHandler(repo *userRepository.UserRepository) *UserHandler {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	return &UserHandler{repo: repo, logger: logger}
+	service := userService.NewUserService(repo)
+	return &UserHandler{repo: repo, logger: logger, service: service}
 }
 
 // CreateUserHandler создает нового пользователя.
@@ -34,7 +35,7 @@ func NewUserHandler(repo *userRepository.UserRepository) *UserHandler {
 // @Accept       json
 // @Produce      json
 // @Param        user  body  user.CreateUserRequest  true  "User Data"
-// @Success      200   {object}  user.UserResponse
+// @Success      200   {object}  user.Response
 // @Failure      400   {object}  map[string]string   "Invalid request body"
 // @Failure      500   {object}  map[string]string   "Internal server error"
 // @Router       /users [post]
@@ -47,32 +48,22 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		render.JSON(w, r, map[string]string{"error": "invalid request body"})
 		return
 	}
+
+	// Валидируем структуру
 	if err := validate.Struct(req); err != nil {
-		http.Error(w, "e-mail недействительный", http.StatusBadRequest)
+		http.Error(w, "invalid input data", http.StatusBadRequest)
 		return
 	}
 
-	// Проверяем уникальность email
-	isUnique, err := h.repo.IsEmailUnique(ctx, req.Email)
+	// Регистрируем пользователя через сервис
+	newUser, err := h.service.RegisterUser(ctx, req)
 	if err != nil {
-		h.logger.Error("Failed to check email uniqueness", "error", err)
-		render.JSON(w, r, map[string]string{"error": "failed to validate email uniqueness"})
-		return
-	}
-	if !isUnique {
-		h.logger.Warn("Email is already in use", "email", req.Email)
-		render.JSON(w, r, map[string]string{"error": "email is already in use"})
+		h.logger.Error("Failed to register user", "error", err)
+		render.JSON(w, r, map[string]string{"error": err.Error()})
 		return
 	}
 
-	// Создаем пользователя
-	newUser, err := h.repo.NewUser(ctx, req)
-	if err != nil {
-		h.logger.Error("Failed to create user", "error", err)
-		render.JSON(w, r, map[string]string{"error": "failed to create user"})
-		return
-	}
-
+	// Успешный ответ
 	h.logger.Info("User created successfully", "user_id", newUser.ID)
 	render.JSON(w, r, map[string]interface{}{
 		"user": map[string]interface{}{
@@ -91,7 +82,7 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 // @Accept       json
 // @Produce      json
 // @Param        id    path      int               true  "User ID"
-// @Success      200   {object}  user.UserResponse
+// @Success      200   {object}  user.Response
 // @Failure      404   {object}  map[string]string "User not found"
 // @Failure      500   {object}  map[string]string "Internal server error"
 // @Router       /users/{id} [get]
@@ -101,59 +92,28 @@ func (h *UserHandler) GetUserByIDHandler(w http.ResponseWriter, r *http.Request)
 	// Получаем ID из параметров запроса
 	userID, err := parseUserID(r)
 	if err != nil {
-		h.logger.Warn("Invalid user ID", "error", err)
-		render.JSON(w, r, map[string]string{"error": "invalid user ID"})
+		h.logger.Warn("Invalid u ID", "error", err)
+		render.JSON(w, r, map[string]string{"error": "invalid u ID"})
 		return
 	}
 
 	// Ищем пользователя по ID
-	user, err := h.repo.GetUserByID(ctx, userID)
+	u, err := h.repo.GetUserByID(ctx, userID)
 	if err != nil {
-		h.logger.Error("Failed to get user by ID", "error", err)
-		render.JSON(w, r, map[string]string{"error": "user not found"})
+		h.logger.Error("Failed to get u by ID", "error", err)
+		render.JSON(w, r, map[string]string{"error": "u not found"})
 		return
 	}
 
-	h.logger.Info("User retrieved successfully", "user_id", user.ID)
+	h.logger.Info("User retrieved successfully", "user_id", u.ID)
 	render.JSON(w, r, map[string]interface{}{
-		"user": map[string]interface{}{
-			"id":    user.ID,
-			"email": user.Email,
-			"name":  user.Name,
+		"u": map[string]interface{}{
+			"id":    u.ID,
+			"email": u.Email,
+			"name":  u.Name,
 		},
 	})
 }
-
-//// UpdateUserHandler обновляет данные пользователя.
-//// @Summary      Update user
-//// @Description  Updates information about an existing user.
-//// @Tags         Users
-//// @Accept       json
-//// @Produce      json
-//// @Param        id    path      int                   true  "User ID"
-//// @Param        user  body      user.UpdateUserRequest  true  "Updated User Data"
-//// @Success      200   {object}  user.UserResponse
-//// @Failure      400   {object}  map[string]string     "Invalid request body"
-//// @Failure      404   {object}  map[string]string     "User not found"
-//// @Failure      500   {object}  map[string]string     "Internal server error"
-//// @Router       /users/{id} [put]
-//func (h *Handler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-//	var req user.UpdateUserRequest
-//	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-//		http.Error(w, "Invalid request body", http.StatusBadRequest)
-//		return
-//	}
-//
-//	id := chi.URLParam(r, "id")
-//	updatedUser, err := h.repo.UpdateUser(r.Context(), id, req)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusNotFound)
-//		return
-//	}
-//
-//	w.WriteHeader(http.StatusOK)
-//	json.NewEncoder(w).Encode(updatedUser)
-//}
 
 // DeleteUserHandler удаляет пользователя по его ID.
 // @Summary      Delete user by ID

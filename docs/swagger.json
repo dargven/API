@@ -90,7 +90,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
@@ -174,7 +174,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "404": {
@@ -269,7 +269,7 @@
                 }
             }
         },
-        "user.UserResponse": {
+        "user.Response": {
             "type": "object",
             "properties": {
                 "email": {

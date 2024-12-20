@@ -14,7 +14,7 @@ type CreateUserRequest struct {
 	Name     string `validate:"required"`
 	Password string `validate:"required"`
 }
-type UserResponse struct {
+type Response struct {
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }

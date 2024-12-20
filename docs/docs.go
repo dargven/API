@@ -101,7 +101,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "400": {
@@ -185,7 +185,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/user.Response"
                         }
                     },
                     "404": {
@@ -280,7 +280,7 @@ const docTemplate = `{
                 }
             }
         },
-        "user.UserResponse": {
+        "user.Response": {
             "type": "object",
             "properties": {
                 "email": {
