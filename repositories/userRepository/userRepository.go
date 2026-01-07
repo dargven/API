@@ -1,8 +1,8 @@
 package userRepository
 
 import (
-	"API/internal/Storage/postrgeSQL"
 	"API/internal/models/user"
+	"API/internal/storage/postrgesql"
 	"context"
 	"errors"
 	"fmt"
@@ -10,11 +10,11 @@ import (
 
 // UserRepository управляет взаимодействием с таблицей пользователей
 type UserRepository struct {
-	db *postrgeSQL.Database
+	db *postrgesql.Database
 }
 
 // NewUserRepository создает новый экземпляр UserRepository
-func NewUserRepository(db *postrgeSQL.Database) *UserRepository {
+func NewUserRepository(db *postrgesql.Database) *UserRepository {
 	return &UserRepository{db: db}
 }
 

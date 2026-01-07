@@ -1,20 +1,21 @@
 package httpserver
 
 import (
-	"API/internal/Storage/postrgeSQL"
 	"API/internal/config"
 	"API/internal/http-server/handlers/booking"
 	userHandler "API/internal/http-server/handlers/user"
 	service "API/internal/services/userService"
+	"API/internal/storage/postrgesql"
 	"API/repositories/userRepository"
+
+	"log/slog"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
-	"log/slog"
 )
 
-func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgeSQL.Database) *chi.Mux {
+func NewRouter(cfg *config.Config, logger *slog.Logger, db *postrgesql.Database) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Настраиваем middleware

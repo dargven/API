@@ -1,4 +1,4 @@
-package postrgeSQL
+package postrgesql
 
 import (
 	"context"

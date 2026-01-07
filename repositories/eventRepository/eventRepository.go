@@ -1,9 +1,9 @@
 package eventRepository
 
 import (
-	"API/internal/Storage/postrgeSQL"
 	"API/internal/lib/logger/sl"
 	event "API/internal/models/event"
+	"API/internal/storage/postrgesql"
 	"context"
 	"fmt"
 	"log/slog"
@@ -11,11 +11,11 @@ import (
 )
 
 type EventRep struct {
-	h      *postrgeSQL.Database
+	h      *postrgesql.Database
 	logger *slog.Logger
 }
 
-func NewEventRep(db *postrgeSQL.Database) *EventRep {
+func NewEventRep(db *postrgesql.Database) *EventRep {
 	return &EventRep{
 		h:      db,
 		logger: slog.New(slog.NewTextHandler(os.Stderr, nil)),

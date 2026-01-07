@@ -2,16 +2,17 @@ package main
 
 import (
 	_ "API/docs"
-	"API/internal/Storage/postrgeSQL"
 	"API/internal/config"
 	httpserver "API/internal/http-server/router"
+	"API/internal/storage/postrgesql"
 	"errors"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
 	"log/slog"
+
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -38,7 +39,7 @@ func main() {
 	logger.Info("Starting application", slog.String("environment", cfg.Env), slog.String("address", cfg.HTTPServer.Address))
 
 	// Настройка подключения к базе данных
-	db, err := postrgeSQL.NewDatabase(&cfg.DataBase)
+	db, err := postrgesql.NewDatabase(&cfg.DataBase)
 	if err != nil {
 		logger.Error("Failed to connect to database", "error", err)
 		os.Exit(1)

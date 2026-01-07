@@ -1,33 +1,32 @@
-# Строим с использованием golang:1.22-alpine
-FROM golang:1.22-alpine as builder
+# Этап сборки (Builder)
+FROM golang:alpine AS builder
 
-# Устанавливаем рабочую директорию для сборки
 WORKDIR /app
 
-# Копируем go.mod и go.sum в рабочую директорию
-COPY go.mod go.sum ./
+# Копируем файлы зависимостей
+COPY go.mod ./
+# Если есть go.sum, раскомментируйте строку ниже
+# COPY go.sum ./
 
-# Загружаем зависимости
-RUN go mod tidy
+RUN go mod download
 
-# Копируем весь проект в контейнер
+# Копируем исходный код
 COPY . .
 
-# Переходим в директорию, где находится main.go
-WORKDIR /app/cmd/app
-
-# Собираем исполняемый файл с именем main
+# --- ВАЖНОЕ ИСПРАВЛЕНИЕ ---
+# Так как main.go лежит в корне, мы собираем текущую директорию (.)
 RUN go build -o main .
 
-# Второй этап: переносим только исполнимый файл в более легкий образ
+# Финальный этап (Production Image)
 FROM alpine:latest
 
-WORKDIR /root/
+WORKDIR /app
 
-# Копируем скомпилированный файл из предыдущего этапа
-COPY --from=builder /app/cmd/app/main .
+# Копируем бинарник из этапа сборки
+COPY --from=builder /app/main .
 
-COPY .env .env
+# Копируем конфиги (на случай проблем с volume)
+COPY --from=builder /app/config ./config
 
-# Устанавливаем точку входа
+# Запускаем приложение
 CMD ["./main"]
