@@ -11,6 +11,10 @@ type User struct {
 	Email        string    `json:"email" validate:"required,email"`
 	Name         string    `json:"name" validate:"required"`
 	PasswordHash string    `json:"-"` // не отдаем в JSON
+	Phone        *string   `json:"phone,omitempty"`
+	AvatarURL    *string   `json:"avatar_url,omitempty"`
+	Bio          *string   `json:"bio,omitempty"`
+	Balance      float64   `json:"balance"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -23,6 +27,19 @@ type UserResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// ProfileResponse - полный профиль пользователя
+type ProfileResponse struct {
+	ID        int64     `json:"id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"name"`
+	Phone     *string   `json:"phone,omitempty"`
+	AvatarURL *string   `json:"avatar_url,omitempty"`
+	Bio       *string   `json:"bio,omitempty"`
+	Balance   float64   `json:"balance"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // ToResponse конвертирует User в UserResponse
 func (u *User) ToResponse() UserResponse {
 	return UserResponse{
@@ -30,6 +47,21 @@ func (u *User) ToResponse() UserResponse {
 		Email:     u.Email,
 		Name:      u.Name,
 		CreatedAt: u.CreatedAt,
+	}
+}
+
+// ToProfileResponse конвертирует User в ProfileResponse
+func (u *User) ToProfileResponse() ProfileResponse {
+	return ProfileResponse{
+		ID:        u.ID,
+		Email:     u.Email,
+		Name:      u.Name,
+		Phone:     u.Phone,
+		AvatarURL: u.AvatarURL,
+		Bio:       u.Bio,
+		Balance:   u.Balance,
+		CreatedAt: u.CreatedAt,
+		UpdatedAt: u.UpdatedAt,
 	}
 }
 

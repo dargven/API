@@ -20,36 +20,26 @@ type EventCreator interface {
 }
 
 // CreateRequest структура запроса на создание мероприятия
-// @Description Запрос на создание мероприятия
 type CreateRequest struct {
-	Title       string `json:"title" validate:"required,min=3,max=200" example:"Конференция Go"`
-	Description string `json:"description" validate:"max=2000" example:"Ежегодная конференция разработчиков Go"`
-	Location    string `json:"location" validate:"required,max=500" example:"Москва, ул. Примерная 1"`
-	StartTime   string `json:"start_time" validate:"required" example:"2024-06-15T10:00:00Z"`
-	EndTime     string `json:"end_time" validate:"required" example:"2024-06-15T18:00:00Z"`
-	MaxSlots    int    `json:"max_slots" validate:"required,min=1" example:"100"`
+	Title       string  `json:"title" validate:"required,min=3,max=200"`
+	Description string  `json:"description" validate:"max=2000"`
+	Category    string  `json:"category" validate:"required,oneof=concert sport theater exhibition festival other"`
+	ImageURL    *string `json:"image_url,omitempty" validate:"omitempty,url"`
+	Venue       string  `json:"venue" validate:"required,max=255"`
+	Address     string  `json:"address" validate:"required,max=500"`
+	Price       float64 `json:"price" validate:"gte=0"`
+	Capacity    int     `json:"capacity" validate:"required,min=1"`
+	StartTime   string  `json:"start_time" validate:"required"`
+	EndTime     string  `json:"end_time" validate:"required"`
 }
 
 // CreateResponse структура ответа при создании мероприятия
-// @Description Ответ при создании мероприятия
 type CreateResponse struct {
 	resp.Response
 	Event models.EventResponse `json:"event"`
 }
 
 // NewCreate создает хендлер для создания мероприятия
-// @Summary Создание мероприятия
-// @Description Создает новое мероприятие. Требуется JWT авторизация.
-// @Tags events
-// @Accept json
-// @Produce json
-// @Param Authorization header string true "Bearer JWT токен"
-// @Param request body CreateRequest true "Данные мероприятия"
-// @Success 201 {object} CreateResponse
-// @Failure 400 {object} resp.Response
-// @Failure 401 {object} resp.Response
-// @Failure 500 {object} resp.Response
-// @Router /events [post]
 func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.events.Create"
@@ -78,7 +68,6 @@ func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 
 		log.Info("request body decoded", slog.Any("request", req))
 
-		// Валидация
 		if err := validator.New().Struct(req); err != nil {
 			validateErr := err.(validator.ValidationErrors)
 			log.Error("validation failed", sl.Err(err))
@@ -87,12 +76,11 @@ func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 			return
 		}
 
-		// Парсинг времени
 		startTime, err := time.Parse(time.RFC3339, req.StartTime)
 		if err != nil {
 			log.Error("invalid start_time format", sl.Err(err))
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, resp.Error("invalid start_time format, use RFC3339 (e.g., 2024-01-15T10:00:00Z)"))
+			render.JSON(w, r, resp.Error("invalid start_time format, use RFC3339"))
 			return
 		}
 
@@ -100,11 +88,10 @@ func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 		if err != nil {
 			log.Error("invalid end_time format", sl.Err(err))
 			w.WriteHeader(http.StatusBadRequest)
-			render.JSON(w, r, resp.Error("invalid end_time format, use RFC3339 (e.g., 2024-01-15T12:00:00Z)"))
+			render.JSON(w, r, resp.Error("invalid end_time format, use RFC3339"))
 			return
 		}
 
-		// Проверка что end_time > start_time
 		if !endTime.After(startTime) {
 			log.Error("end_time must be after start_time")
 			w.WriteHeader(http.StatusBadRequest)
@@ -112,7 +99,6 @@ func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 			return
 		}
 
-		// Проверка что start_time в будущем
 		if startTime.Before(time.Now()) {
 			log.Error("start_time must be in the future")
 			w.WriteHeader(http.StatusBadRequest)
@@ -123,11 +109,15 @@ func NewCreate(log *slog.Logger, eventCreator EventCreator) http.HandlerFunc {
 		event := &models.Event{
 			Title:       req.Title,
 			Description: req.Description,
-			Location:    req.Location,
+			Category:    req.Category,
+			ImageURL:    req.ImageURL,
+			Venue:       req.Venue,
+			Address:     req.Address,
+			Price:       req.Price,
+			Capacity:    req.Capacity,
 			StartTime:   startTime,
 			EndTime:     endTime,
 			CreatorID:   userID,
-			MaxSlots:    req.MaxSlots,
 		}
 
 		createdEvent, err := eventCreator.CreateEvent(event)

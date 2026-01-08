@@ -6,7 +6,10 @@ import (
 	"API/internal/auth"
 	"API/internal/config"
 	authHandlers "API/internal/http-server/handlers/auth"
+	"API/internal/http-server/handlers/bookings"
 	"API/internal/http-server/handlers/events"
+	"API/internal/http-server/handlers/profile"
+	"API/internal/http-server/handlers/search"
 	"API/internal/http-server/handlers/url/save"
 	authMiddleware "API/internal/http-server/middleware/auth"
 	resp "API/internal/lib/api/response"
@@ -80,8 +83,29 @@ func main() {
 		r.Post("/", events.NewCreate(log, storage))
 		r.Get("/", events.NewGetAll(log, storage))
 		r.Get("/{id}", events.NewGetByID(log, storage))
+		// Бронирование на мероприятие
+		r.Post("/{id}/book", bookings.NewCreate(log, storage))
 	})
 
+	router.Route("/profile", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", profile.NewGet(log, storage))
+		r.Put("/", profile.NewUpdate(log, storage))
+		r.Post("/balance", profile.NewTopUpBalance(log, storage))
+	})
+
+	router.Route("/bookings", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", bookings.NewList(log, storage))
+		r.Delete("/{id}", bookings.NewCancel(log, storage))
+	})
+
+	router.Route("/search", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", search.NewSearch(log, storage))
+	})
+
+	// Роуты с JWT аутентификацией для URL
 	router.Route("/url", func(r chi.Router) {
 		r.Use(authMiddleware.JWTAuth(log, jwtManager))
 		r.Post("/", save.New(log, storage))
