@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator"
+	"github.com/go-playground/validator/v10"
 	"golang.org/x/exp/slog"
 )
 

@@ -2,20 +2,30 @@ package main
 
 import (
 	storage "API/internal/Storage"
-	"API/internal/Storage/sqlite"
+	"API/internal/Storage/postgres"
+	"API/internal/auth"
 	"API/internal/config"
+	authHandlers "API/internal/http-server/handlers/auth"
+	"API/internal/http-server/handlers/bookings"
+	"API/internal/http-server/handlers/events"
+	"API/internal/http-server/handlers/profile"
+	"API/internal/http-server/handlers/search"
 	"API/internal/http-server/handlers/url/save"
+	authMiddleware "API/internal/http-server/middleware/auth"
 	resp "API/internal/lib/api/response"
 	"API/internal/lib/logger/sl"
 	"errors"
 	"net/http"
 	"os"
 
+	_ "API/docs"
+
 	"golang.org/x/exp/slog"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/render"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const (
@@ -25,8 +35,6 @@ const (
 )
 
 // URLGetter is an interface for getting url by alias.
-//
-//go:generate go run github.com/vektra/mockery/v2@v2.28.2 --name=URLGetter
 type URLGetter interface {
 	GetURL(alias string) (string, error)
 }
@@ -34,36 +42,94 @@ type URLGetter interface {
 func main() {
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
-	log = log.With(slog.String("env", cfg.Env))                          //к каждому сообщению будет добавляться поле с информацией о текущем окружении
-	log.Info("initializing server", slog.String("address", cfg.Address)) // Помимо сообщения выведем параметр с адресом
+	log = log.With(slog.String("env", cfg.Env))
+	log.Info("initializing server", slog.String("address", cfg.HTTPServer.Address))
 	log.Debug("logger debug mode enabled")
-	storage, err := sqlite.New(cfg.StoragePath)
+
+	storage, err := postgres.New(
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.User,
+		cfg.Database.Password,
+		cfg.Database.DBName,
+		cfg.Database.SSLMode,
+	)
 	if err != nil {
 		log.Error("failed to initialize storage", sl.Err(err))
+		os.Exit(1)
 	}
+	defer storage.Close()
+
+	jwtManager := auth.NewJWTManager(cfg.JWT.Secret, cfg.JWT.TokenTTL)
 
 	router := chi.NewRouter()
-	router.Use(middleware.RequestID) // Добавляет request_id в каждый запрос, для трейсинга(понимания сколько выполняется каждый запрос)
+	router.Use(middleware.RequestID)
 	router.Use(middleware.Logger)
-	//Разобраться как подключить свой logger
-	router.Use(middleware.Recoverer) // Если где-то внутри сервера (обработчика запроса) произойдет паника, приложение не должно упасть
-	router.Use(middleware.URLFormat) // Парсер URLов поступающих запросов
-	router.Post("/", save.New(log, storage))
-	// Все пути этого роутера будут начинаться с префикса `/url`
-	router.Route("/url", func(r chi.Router) {
-		// Подключаем авторизацию
-		r.Use(middleware.BasicAuth("API", map[string]string{
-			// Передаем в middleware креды
-			cfg.HTTPServer.User: cfg.HTTPServer.Password,
-			// Если у вас более одного пользователя,
-			// то можете добавить остальные пары по аналогии.
-		}))
+	router.Use(middleware.Recoverer)
+	router.Use(middleware.URLFormat)
+	router.Use(middleware.RedirectSlashes)
 
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
+
+	router.Route("/auth", func(r chi.Router) {
+		r.Post("/register", authHandlers.NewRegister(log, storage, jwtManager))
+		r.Post("/login", authHandlers.NewLogin(log, storage, jwtManager))
+	})
+
+	router.Route("/events", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Post("/", events.NewCreate(log, storage))
+		r.Get("/", events.NewGetAll(log, storage))
+		r.Get("/{id}", events.NewGetByID(log, storage))
+		// Бронирование на мероприятие
+		r.Post("/{id}/book", bookings.NewCreate(log, storage))
+	})
+
+	router.Route("/profile", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", profile.NewGet(log, storage))
+		r.Put("/", profile.NewUpdate(log, storage))
+		r.Post("/balance", profile.NewTopUpBalance(log, storage))
+	})
+
+	router.Route("/bookings", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", bookings.NewList(log, storage))
+		r.Delete("/{id}", bookings.NewCancel(log, storage))
+	})
+
+	router.Route("/search", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
+		r.Get("/", search.NewSearch(log, storage))
+	})
+
+	// Роуты с JWT аутентификацией для URL
+	router.Route("/url", func(r chi.Router) {
+		r.Use(authMiddleware.JWTAuth(log, jwtManager))
 		r.Post("/", save.New(log, storage))
 	})
 
-	// Хэндлер redirect остается снаружи, в основном роутере
-	router.Get("/{alias}", redirect.New(log, storage))
+	// Публичный роут для редиректа
+	router.Get("/{alias}", redirectHandler(log, storage))
+
+	// Запуск сервера
+	log.Info("starting server", slog.String("address", cfg.HTTPServer.Address))
+	log.Info("swagger UI available at", slog.String("url", "http://"+cfg.HTTPServer.Address+"/swagger/index.html"))
+
+	srv := &http.Server{
+		Addr:         cfg.HTTPServer.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		log.Error("failed to start server", sl.Err(err))
+		os.Exit(1)
+	}
 }
 
 func setupLogger(env string) *slog.Logger {
@@ -71,59 +137,48 @@ func setupLogger(env string) *slog.Logger {
 	switch env {
 	case envLocal:
 		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
-	// По сути нам не надо у нас локалка
 	case envDev:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	case envProd:
 		log = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	default:
+		log = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	}
-	//
 	return log
 }
 
-func New(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
+// redirectHandler обрабатывает редирект по алиасу
+func redirectHandler(log *slog.Logger, urlGetter URLGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		const op = "handlers.url.redicted.New"
+		const op = "handlers.url.redirect"
 
 		log = log.With(
 			slog.String("op", op),
 			slog.String("request_id", middleware.GetReqID(r.Context())),
 		)
 
-		// Роутер chi позволяет делать вот такие финты -
-		// получать GET-параметры по их именам.
-		// Имена определяются при добавлении хэндлера в роутер, это будет ниже.
 		alias := chi.URLParam(r, "alias")
 		if alias == "" {
 			log.Error("alias is empty")
-
 			render.JSON(w, r, resp.Error("alias is empty"))
-
 			return
 		}
 
-		// Находим URL по алиасу в БД
 		resURL, err := urlGetter.GetURL(alias)
 		if errors.Is(err, storage.ErrURLNotFound) {
-			// Не нашли URL, сообщаем об этом клиенту
-			log.Error("request body is empty")
-
-			render.JSON(w, r, resp.Error("empty request"))
-
+			log.Error("url not found", slog.String("alias", alias))
+			w.WriteHeader(http.StatusNotFound)
+			render.JSON(w, r, resp.Error("url not found"))
 			return
-
 		}
 		if err != nil {
 			log.Error("failed to get URL", sl.Err(err))
-
+			w.WriteHeader(http.StatusInternalServerError)
 			render.JSON(w, r, resp.Error("internal error"))
-
 			return
-
 		}
 
-		log.Info("got url", slog.String("url", resURL))
-
+		log.Info("redirecting", slog.String("alias", alias), slog.String("url", resURL))
 		http.Redirect(w, r, resURL, http.StatusFound)
 	}
 }

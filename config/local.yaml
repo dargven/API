@@ -1,8 +1,20 @@
-env : "local"
-storage_path : "./storage/storage.db"
-http_server :
-  address: "localhost:8082" #у нас скорее всего надо ставить 8080, у нас ведь ничего не запущено на стандартом порту
+env: "local"
+
+database:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: "postgres"
+  dbname: "events_db"
+  sslmode: "disable"
+
+http_server:
+  address: "0.0.0.0:8082"
   timeout: 4s
   idle_timeout: 30s
   user: "my_user"
   password: "my_pass"
+
+jwt:
+  secret: "your-super-secret-key-min-32-characters-long!"
+  token_ttl: 24h
