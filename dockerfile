@@ -5,8 +5,7 @@ WORKDIR /app
 
 # Копируем файлы зависимостей
 COPY go.mod ./
-# Если есть go.sum, раскомментируйте строку ниже
-# COPY go.sum ./
+COPY go.sum ./
 
 RUN go mod download
 
@@ -15,7 +14,7 @@ COPY . .
 
 # --- ВАЖНОЕ ИСПРАВЛЕНИЕ ---
 # Так как main.go лежит в корне, мы собираем текущую директорию (.)
-RUN go build -o main .
+RUN go build -o main ./cmd/app/main.go
 
 # Финальный этап (Production Image)
 FROM alpine:latest
